@@ -64,6 +64,18 @@ Players.init({
   latestSignature: Sequelize.TEXT
 }, { sequelize, modelName: 'Players' });
 
+class Record extends Sequelize.Model {}
+Record.init({
+  RecordID: {
+     type: Sequelize.INTEGER,
+     primaryKey: true,
+     autoIncrement: true
+  },
+  RecordChannelAddress: Sequelize.TEXT,
+  lastSignature: Sequelize.TEXT,
+  amount:Sequelize.TEXT
+}, { sequelize, modelName: 'Record' });
+
 
 sequelize.sync()
 // sequelize.close()

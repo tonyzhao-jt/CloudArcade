@@ -4,6 +4,7 @@ const Service = require("./DBUtil.js").Service
 const Players = require("./DBUtil.js").Players
 const Games = require("./DBUtil.js").Games
 const sequelize = require("./DBUtil.js").sequelize
+const Record = require("./DBUtil.js").Record
 const isValidSignature = require('./signerCheck').isValidSignature
 // var Ut = require("./common");
 
@@ -172,9 +173,22 @@ app.post('/sendGameOver', function(req, res){
     })
 })
 
-// Close the payment channel and receive money
-closePaymentChannel = function(channel_address, latestSignature, accumulatedAmount){
-
+// Record Abandoned Payment Channel
+// try again if went wrong
+RecordClosedPaymentChannel = function(channel_address, latestSignature, amount, cnt){
+    record_text = {
+        RecordChannelAddress:channel_address,
+        lastSignature: latestSignature,
+        amount: amount
+    }
+    Record.create(record_text).then(result =>{
+        console.log('Record abandoned channel ok')
+    }).catch(e =>{
+        if(cnt == 1){
+            console.log('problems in recording')
+        }
+        RecordClosedPaymentChannel(channel_address, latestSignature, amount, 1)
+    })
 }
 
 // Get paymment channel info from DB
@@ -183,7 +197,7 @@ getPaymentChannelFromDB = function(player_address, callback){
     if(!player_address){
         callback({code:2})
     }
-    console.log("add", player_address)
+    // console.log("add", player_address)
     Players.findOne({
         where:{
             playerAddress:player_address,
@@ -218,7 +232,7 @@ autoReg = function (playerAddress, channel_address, callback) {
         if(player.length > 0){
             callback({code:1})
         }else{
-            console.log('Creating New User')
+            // console.log('Creating New User')
             let new_amount = 0
             let new_signature = ""
             let new_pl_info = {
@@ -259,22 +273,28 @@ app.post('/postSignature', cors(corsOptions), function(req, res){
         getPaymentChannelFromDB(payer_address, function(result){
             if(result.code == 0){
                 if(result.latestSignature == signature){
-                    return res.json({status:'error', code:1, msg:'old Signature'})
+                    return res.json({status:'error', code:1, msg:'Old Signature'})
                 }
                 let accumulatedAmount = result.accumulatedAmount
-                let total_amount = parseInt(accumulatedAmount,10) + parseInt(current_price[game_id],10)
+                let total_amount = parseInt(accumulatedAmount,10) + parseInt(current_price[game_id-1],10)
                 let valid = isValidSignature(contract_address, total_amount, signature, payer_address)
+                // console.log("valid",valid)
                 if(valid){
                     values = {
                         accumulatedAmount:total_amount,
                         latestSignature: signature
                     }
-                    selector = {where:{playerAddress: payer_address}}
-                    Players.update({
+                    selector = {where: { playerAddress : payer_address}}
+                    console.log(values, selector)
+                    Players.update(
                         values, selector
-                    }).then(result =>{
+                    ).then(result =>{
                         console.log('here')
-                        returnServiceURL(game_id)
+                        getCurrentGamePrice(result =>{
+                            io.emit('priceUpdate', result)
+                        })
+                        returnServiceURL(game_id, total_amount, res)
+
                     }).catch(error =>{
                         return res.json({status:'Error', code:2, msg:'error in updating'})      
                     })
@@ -314,7 +334,7 @@ app.post('/newPaymentChannelCreated', cors(corsOptions), function(req, res){
     // basic check
     let player_address = req.body.player_address || ''
     let new_channel_address = req.body.new_channel_address || ''
-    console.log(player_address, new_channel_address)
+    // console.log(player_address, new_channel_address)
     if(player_address && new_channel_address){}else{
         // wrong params
         return res.json({status:'error', code:2, msg:'Wrong Params'})
@@ -322,7 +342,8 @@ app.post('/newPaymentChannelCreated', cors(corsOptions), function(req, res){
     // get money back
     getPaymentChannelFromDB(player_address, function (result) {
         if(result.code == 0){
-            closePaymentChannel(result.address, result.latestSignature, result.accumulatedAmount)
+            // console.log("record abandoned",result)
+            RecordClosedPaymentChannel(result.address, result.latestSignature, result.accumulatedAmount, 0)
         }
     })
     autoReg(player_address, new_channel_address, function(result){
@@ -336,7 +357,7 @@ app.post('/newPaymentChannelCreated', cors(corsOptions), function(req, res){
                 paymentChannelAddress:new_channel_address,
                 accumulatedAmount:0
             }
-            var selector = {where:{playerAddress : player_address}}
+            var selector = {where: { playerAddress : player_address}}
             console.log(values, selector)
             Players.update(
                 values, selector
@@ -350,7 +371,7 @@ app.post('/newPaymentChannelCreated', cors(corsOptions), function(req, res){
     
 })
 
-returnServiceURL = function(game_id){
+returnServiceURL = function(game_id, new_acc, res){
     // check whether the transaction is already be used
     Service.findOne({
         where:{
@@ -377,7 +398,7 @@ returnServiceURL = function(game_id){
         updateServiceRecord(serviceID, function(output){
             // console.log("success !!!")
             if(output){
-                return res.json({status:'success', code:0, msg:url})
+                return res.json({status:'success', code:0, msg:{serviceURL:url, accAmount:new_acc}})
             }else{
                 return res.json({status:'error', code:2, error: "Error in fetching available service, Please Contact"})
             }
@@ -395,13 +416,13 @@ app.post('/paymentRequest', cors(corsOptions), function(req, res){
     if(!transactionHash && !payerAddress){
         return res.json({status:'error', msg:'No Transaction Hash Or Payer Address'})
     }
-    console.log("txhash",transactionHash)
+    // console.log("txhash",transactionHash)
     getGame_id("0", transactionHash, function(game_id){
-        console.log(game_id)
+        // console.log(game_id)
         if(!game_id){
             return res.json({status:'error', msg:'Wrong Transaction Info', code:0})
         }
-        console.log("Already get gameID", game_id)
+        // console.log("Already get gameID", game_id)
         updatePlayerRecord(payerAddress, transactionHash, function(update_status){
             // console.log("update status", update_status)
             if(!update_status){
@@ -431,7 +452,7 @@ app.post('/paymentRequest', cors(corsOptions), function(req, res){
                         }
                     })
 
-                    console.log("Updated user information")
+                    // console.log("Updated user information")
                     updateServiceRecord(serviceID, function(output){
                         console.log("success !!!")
                         if(output){

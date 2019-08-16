@@ -54,6 +54,8 @@
 /* eslint-disable */
 import deployChannel from '../util/channelDeploy'
 import signer from '../util/web3Signer'
+import Clipboard from 'clipboard';
+import { constants } from 'fs';
 export default {
   name: 'demon',
   data () {
@@ -129,6 +131,7 @@ export default {
         if(data.body.code == 2){
         this.$message.error(data.body.msg)
         }else{
+          this.accAmount = 0
           this.$message({
           message: 'Successfully Built The Payment Channel',
           type: 'success'
@@ -164,11 +167,6 @@ export default {
         console.log(data)
       })
     },
-    signPayment(game_id, amount){
-      signer(this.$store.state.web3.coinbase,this.paymmentChannelAddress, amount, (signed_message=>{
-        console.log(signed_message)
-      }))
-    },
 
     handler(gameStatus, i){
       if(gameStatus){
@@ -200,11 +198,20 @@ export default {
       })
       
     },
-
-    clickReset(){
-      this.chosenGame = null
+    // copy to clid board
+    copy(text, callback) {
+      var clipboard = new Clipboard(text)
+      clipboard.on('success', e => {
+        // 释放内存
+        clipboard.destroy()
+        callback(0)
+      })
+      clipboard.on('error', e => {
+        // 释放内存
+        clipboard.destroy()
+        callback(2)
+      })
     },
-
 
     // post signature
     postSignature(payerAddress, signature, contract_address, game_id){
@@ -216,15 +223,43 @@ export default {
         game_id:game_id
       },{emulateJSON: true , timeout:10000})
       .then((data)=>{
-        if(data.body.code == 2){
+        console.log(data)
+        if(data.body.code != 0){
         this.$message.error(data.body.msg)
         }else{
-          this.$message({
-          message: 'Successfully Generated And Send Message',
-          type: 'success'
-          });
-        }
-      })
+          let serviceURL = data.body.msg.serviceURL
+          let accAmount = data.body.msg.accAmount
+          this.accAmount = accAmount 
+          console.log("message received")
+          const h = this.$createElement;
+          this.$msgbox({
+            title: 'Your Service URL',
+            message: h('p', null, [
+              h('span', null, 'Service URL:'),
+              h('i', { style: 'color: teal' }, serviceURL)
+            ]),
+            showCancelButton: false,
+            confirmButtonText: 'confirm',
+            beforeClose: (action, instance, done) => {
+              if (action === 'confirm') {
+                this.copy(serviceURL, (result) =>{
+                  if(result == 0){
+                    this.$message({
+                        type: 'info',
+                        message: 'URL copied'
+                    });
+                  }
+                })
+              } else {
+                done();
+              }
+            }
+          })
+          }
+        }).catch(error =>{
+          this.$message.error("No Response")
+        })
+        
     },
 
     // Payment Button Clicked
@@ -233,6 +268,10 @@ export default {
       if(this.paymentChannelAddress){
         this.btn_loading = true
         let new_acc_price = this.accAmount + price
+        let crowd = this.handler(this.gameStatus, id)
+        if(crowd === 100){
+          return this.$message.error('Services are full!')
+        }
         // console.log("price", new_acc_price, this.paymentChannelAddress)
         signer(this.paymentChannelAddress, new_acc_price, (signature)=>{
           // console.log("签名", signature)
@@ -240,8 +279,11 @@ export default {
           if(!signature){
             return this.$message.error('No Payment Channel Detected!')
           }
-          this.accAmount = new_acc_price
-          this.postSignature(this.$store.state.web3.coinbase, signature, this.paymentChannelAddress, id)
+          this.postSignature(this.$store.state.web3.coinbase, signature, this.paymentChannelAddress, id + 1)
+          this.$message({
+          message: 'Successfully Generated And Send Signature',
+          type: 'success'
+          });
         })
       }else{
         this.$message.error('No Payment Channel Detected!')

@@ -65,7 +65,20 @@ Players.init({
 }, { sequelize, modelName: 'Players' });
 
 
+class Record extends Sequelize.Model {}
+Record.init({
+  RecordID: {
+     type: Sequelize.INTEGER,
+     primaryKey: true,
+     autoIncrement: true
+  },
+  RecordChannelAddress: Sequelize.TEXT,
+  lastSignature: Sequelize.TEXT,
+  amount:Sequelize.TEXT
+}, { sequelize, modelName: 'Record' });
+
 module.exports.Service = Service
 module.exports.Games = Games
 module.exports.sequelize = sequelize
 module.exports.Players = Players
+module.exports.Record = Record

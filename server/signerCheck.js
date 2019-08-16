@@ -23,6 +23,7 @@ function recoverSigner(message, signature) {
 
 let isValidSignature = function(contractAddress, amount, signature, expectedSigner) {
     var message = constructPaymentMessage(contractAddress, amount);
+    console.log(contractAddress, amount)
     var signer = recoverSigner(message, signature);
     console.log(signer)
     console.log(util.stripHexPrefix(expectedSigner))
