@@ -1,14 +1,15 @@
+// Creator for DB
 const Sequelize = require('sequelize');
 
+// Deafult settings
 database = 'GARecord'
 username = 'root'
 password = 'Zjtapp@123'
 host = 'localhost'
 
-// Option 1: Passing parameters separately
 const sequelize = new Sequelize(database, username, password, {
   host: host,
-  dialect: 'mysql'/* one of 'mysql' | 'mariadb' | 'postgres' | 'mssql' */,
+  dialect: 'mysql',
   pool: {
     max: 5,
     min: 0,
@@ -23,6 +24,7 @@ sequelize.authenticate().then(() => {
     console.error('Unable to connect to the database:', err);
   });
 
+// Model: Service
 class Service extends Sequelize.Model {}
 Service.init({
     serviceID: {
@@ -38,6 +40,7 @@ Service.init({
 
 }, { sequelize, modelName: 'Service' });
 
+// Model: Games
 class Games extends Sequelize.Model {}
 Games.init({
   gameID: {
@@ -51,6 +54,7 @@ Games.init({
   picurl: Sequelize.TEXT,
 }, { sequelize, modelName: 'Games' });
 
+// Model: Players
 class Players extends Sequelize.Model {}
 Players.init({
   playerID: {
@@ -64,7 +68,7 @@ Players.init({
   latestSignature: Sequelize.TEXT
 }, { sequelize, modelName: 'Players' });
 
-
+// Model: Record
 class Record extends Sequelize.Model {}
 Record.init({
   RecordID: {

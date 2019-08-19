@@ -1,3 +1,4 @@
+// Signer checker, check the payment signature valid
 // this mimics the prefixing behavior of the eth_sign JSON-RPC method.
 var abi = require('ethereumjs-abi')
 var util = require('ethereumjs-util')

@@ -1,19 +1,16 @@
 // code, 0 for true,  1 for false and 2 for error
-// default server settings
+// Default server settings
+// DBUtil models
 const Service = require("./DBUtil.js").Service
 const Players = require("./DBUtil.js").Players
 const Games = require("./DBUtil.js").Games
 const sequelize = require("./DBUtil.js").sequelize
 const Record = require("./DBUtil.js").Record
+// Signature Checker
 const isValidSignature = require('./signerCheck').isValidSignature
-// var Ut = require("./common");
-
+// Express
 const express = require('express')
-var api = require('etherscan-api').init('S8MD5THU86R9YCS3T1763299WDU9YKPRGG','rinkeby','5000')
-
-// contract info
-const address = '0x44A9D17E868186dFea4D2798b307D39692716a38'
-const topic0 = '0x65adfbd8b95db8cf4236cb2241c735e0b147ba0b912d34f7de046692f9db3b43'
+// Cors
 var fs=require('fs');
 var cors = require('cors');
 var corsOptions = {
@@ -24,25 +21,21 @@ const app = express()
 const HOST = '127.0.0.1'
 const PORT = '7000'
 
-// json data
+// JSON middle ware
 var bodyParser = require('body-parser')
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
-// allow the static sources 
+// Static Places
 app.use(express.static('public'))
 
-// socket
-
+// Socket. Web socket
 let server = require('http').Server(app)
 let io = require('socket.io')(server)
-//  listen port
+//  web socket Listening port
 server.listen(3000,'127.0.0.1');
 
 io.on('connection', (socket) => {
     console.log('Connected With Client:'+socket.id)
-    // io.emit 广播 群聊 给所有在线的人发消息
-    // socket.emit 谁给我发的消息 返回消息给谁,智能机器人的实现
-    // 监听客户端发来的消息
     // socket.on('priceUpdate', () => {
     //     gamePriceUpodated()
     // })
@@ -73,7 +66,7 @@ getCurrentGamePrice = function(callback){
     // pricing logic here
     return callback([1,2,3])
 }
-
+// Uodate the Service Record When Allocated
 updateServiceRecord = function(serviceID, callback){
     var selector = {where:{serviceID: serviceID}}
     var values = {available:"0"}
@@ -85,38 +78,6 @@ updateServiceRecord = function(serviceID, callback){
     }).catch(error =>{
         console.log('not done in final', error)
         callback(false)
-    })
-}
-
-updatePlayerRecord = function(payer, transactionHash, callback){
-    Players.findOne({
-        where:{
-            playerAddress:payer,
-        },
-    }).then(player => {
-        var playerID = player.get("playerID")
-        if(playerID){
-            if(player.get("lastTransaction") != transactionHash){
-                var values = {lastTransaction: transactionHash}
-                var selector = {where:{playerID: playerID}}
-                console.log("here", playerID, transactionHash)
-                Players.update(
-                    values, selector
-                ).then(result =>{
-                    console.log('done', result)
-                    callback(true)
-                }).catch(error =>{
-                    callback(false)
-                })
-            }else{
-                callback(false)
-            }
-        }else{
-            Players.create({payer, transactionHash})
-            .then(ok => {callback(true)})
-            .catch(e => {callback(false)});
-        }
-        
     })
 }
 
@@ -371,6 +332,7 @@ app.post('/newPaymentChannelCreated', cors(corsOptions), function(req, res){
     
 })
 
+// Fetch Service URL from local DB
 returnServiceURL = function(game_id, new_acc, res){
     // check whether the transaction is already be used
     Service.findOne({
@@ -408,68 +370,6 @@ returnServiceURL = function(game_id, new_acc, res){
         return res.json({status:'error', code:2, error: "Error in fetching available service, Please Contact"})
     })
 }
-
-// payment request
-app.post('/paymentRequest', cors(corsOptions), function(req, res){
-    var transactionHash = req.body.transactionHx || ''
-    var payerAddress = req.body.payerAddress || ''
-    if(!transactionHash && !payerAddress){
-        return res.json({status:'error', msg:'No Transaction Hash Or Payer Address'})
-    }
-    // console.log("txhash",transactionHash)
-    getGame_id("0", transactionHash, function(game_id){
-        // console.log(game_id)
-        if(!game_id){
-            return res.json({status:'error', msg:'Wrong Transaction Info', code:0})
-        }
-        // console.log("Already get gameID", game_id)
-        updatePlayerRecord(payerAddress, transactionHash, function(update_status){
-            // console.log("update status", update_status)
-            if(!update_status){
-                return res.json({status:'error', msg:'Error in DB updating'})
-            }else{
-                
-                // check whether the transaction is already be used
-                Service.findOne({
-                    where:{
-                    available:1,
-                    game_id: game_id
-                }
-                }).then(result =>{
-                    
-                    // update info
-                    var url = result.get('url')
-                    var serviceID = result.get('serviceID')
-                    let filepath = result.get('lockfile_path')
-                    let params = {
-                        serviceID: serviceID,
-                        active: true
-                    }
-                    var str = JSON.stringify(params)
-                    fs.writeFile(filepath,str,function(err){
-                        if(err){
-                            return res.json({status: 'error', msg: 'Wrong In Path, please contact manager'}) 
-                        }
-                    })
-
-                    // console.log("Updated user information")
-                    updateServiceRecord(serviceID, function(output){
-                        console.log("success !!!")
-                        if(output){
-                            return res.json({status:'success', msg:url})
-                        }else{
-                            return res.json({status:'error', error: "Error in fetching available service, Please Contact"})
-                        }
-                    })
-                    
-                }).catch(error =>{
-                    return res.json({status:'error', error: "Error in fetching available service, Please Contact"})
-                })
-                    }
-                }) 
-    })
-    
-})
 
 // Add new game to db
 app.post('/addNewGame', function(req, res){
