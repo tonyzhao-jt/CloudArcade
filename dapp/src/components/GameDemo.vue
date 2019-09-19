@@ -13,14 +13,14 @@
         :src="game.picurl"
         fit="fill"></el-image>
         <el-row :gutter="20" type="flex" style="padding: 14px;">
-          <el-col :span="8"><div style="font-family: Helvetica Neue; font-size:0.7em; padding-top:0.5em;">CROWDNESS</div></el-col>
+          <el-col :span="8"><div style="font-family: Helvetica Neue; font-size:0.7em; padding-top:0.5em;">CROWDEDNESS</div></el-col>
           <el-col :span="15"><div><el-progress :text-inside="true" :stroke-width="22" :percentage="handler(gameStatus, i)"></el-progress>
           </div></el-col>
         </el-row>
         <el-row :gutter="20" type="flex" style="padding: 0.2em;">
           <el-col :span="3"><div style="font-family: Helvetica Neue; font-size:2em; padding-top:0.2em; padding-left:0.6em;">{{gamePrices[i]}}</div></el-col>
           <el-col :span="5"><div style="padding-top:0.8em;">Ether</div></el-col>
-          <el-col :span="8"><el-button class="button" style="width:14em;" v-on:click="clickPayment(i)" type="primary" :loading="button_.btn_loading" :disabled="false">Purchase Game</el-button></el-col>
+          <el-col :span="9"><el-button class="button" style="width:14em;" v-on:click="clickPayment(i)" type="primary" :loading="button_.btn_loading" :disabled="false">Purchase Game</el-button></el-col>
         </el-row>
       </el-card>
       </el-col>
@@ -107,6 +107,7 @@ export default {
     // Payment Channel Part
     // Get Channel Information For the Current User
     get_channel_info(){
+      
       this.button_.getchannel_loading = true
       this.$http.post(this.serverURL + '/getPaymentChannelAddress',{player_address:this.$store.state.web3.coinbase},{emulateJSON: true , timeout:10000})
       .then((data)=>{
@@ -141,6 +142,7 @@ export default {
     },
     // Deploy the Payment Channel If needed
     deploy_channel(){
+      console.time('channel')
       this.button_.deploy_loading = true
       deployChannel(this.$store.state.web3.coinbase, (result =>{
         if(result){
@@ -148,6 +150,7 @@ export default {
           this.sendPaymentChannel(this.$store.state.web3.coinbase, result)
           this.paymentChannelAddress = result
           this.button_.deploy_loading = false
+          console.timeEnd('channel')
         }else{
           this.$message.error('Problems in Deploy Payment Channel')
           this.button_.deploy_loading = false
@@ -215,6 +218,7 @@ export default {
 
     // post signature
     postSignature(payerAddress, signature, contract_address, game_id){
+      console.time('postsig')
       this.$http.post(this.serverURL + '/postSignature',
       {
         payerAddress: payerAddress,
@@ -223,6 +227,7 @@ export default {
         game_id:game_id
       },{emulateJSON: true , timeout:10000})
       .then((data)=>{
+        console.timeEnd('postsig')
         console.log(data)
         if(data.body.code != 0){
         this.$message.error(data.body.msg)
