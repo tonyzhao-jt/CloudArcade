@@ -23,3 +23,18 @@ location = {Taipei, Taiwan},
 series = {BSCI '20}
 }
 ```
+
+# Related Proj
+## Pricing Theory
+[**CryptoArcade: A Cloud Gaming System With Blockchain-Based Token Economy**](https://ieeexplore.ieee.org/document/9904299)
+```
+  @ARTICLE{9904299,
+  author={Fan, Sizheng and Zhao, Juntao and Zhao, Rong and Wang, Zehua and Cai, Wei},
+  journal={IEEE Transactions on Cloud Computing}, 
+  title={CryptoArcade: A Cloud Gaming System With Blockchain-Based Token Economy}, 
+  year={2023},
+  volume={11},
+  number={3},
+  pages={2445-2458},
+  doi={10.1109/TCC.2022.3210013}}
+```
