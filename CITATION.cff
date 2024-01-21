@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Zhao
+    given-names: Juntao
+  - family-names: Chi
+    given-names: Yuanfang
+  - family-names: Wang
+    given-names: Zehua
+  - family-names: Leung
+    given-names: Victor C.M.
+  - family-names: Cai
+    given-names: Wei
+doi: 10.1145/3384943.3409420
+keywords:
+  - pricing
+  - human-centered computing
+  - cryptocurrency
+  - cloud gaming
+  - blockchain
+title: "CloudArcade: A Blockchain Empowered Cloud Gaming System"
+type: paper-conference
+url: https://doi.org/10.1145/3384943.3409420
+venue:
+  name: "Proceedings of the 2nd ACM International Symposium on Blockchain and Secure Critical Infrastructure"
+  series-title: "BSCI '20"
+  location: "Taipei, Taiwan"
+  publisher: "Association for Computing Machinery"
+  date: "2020"
+  pages: "31–40"
